@@ -1,0 +1,1 @@
+import React from 'react'; export const Input=React.forwardRef(({className='',...props},ref)=>(<input ref={ref} className={`w-full rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-300 ${className}`} {...props}/>));
