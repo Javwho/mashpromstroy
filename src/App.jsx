@@ -1467,9 +1467,6 @@ function AppInner() {
   // Отправка в Telegram
   async function sendTelegram(payload) {
     try {
-      const BOT_TOKEN = TG.BOT_TOKEN;
-      const CHAT_ID = TG.CHAT_ID;
-
       const text = [
         "📦 *Новая заявка*",
         `Товар/услуга: ${payload.product}`,
@@ -1483,18 +1480,13 @@ function AppInner() {
         `Время: ${payload.timestamp || new Date().toISOString()}`,
       ].join("\n");
 
-      const res = await fetch(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: CHAT_ID,
-            text,
-            parse_mode: "Markdown",
-          }),
-        }
-      );
+     const res = await fetch("/.netlify/functions/send-telegram", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ text }),
+});
 
       const j = await res.json();
       console.log("Telegram response:", j);
