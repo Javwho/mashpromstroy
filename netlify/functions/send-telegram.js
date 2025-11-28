@@ -1,64 +1,79 @@
-export default async function handler(event, context) {
+// netlify/functions/send-telegram.js
+
+export default async (request, context) => {
   // Разрешаем только POST
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      body: "Method Not Allowed",
-    };
+  if (request.method !== "POST") {
+    return new Response("Method Not Allowed", { status: 405 });
   }
 
   try {
-    const { name, phone, message } = JSON.parse(event.body || "{}");
+    const { text } = await request.json();
 
-    // Достаём токен и chat_id из переменных окружения
+    if (!text) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "No text provided" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const token = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHAT_ID;
 
     if (!token || !chatId) {
-      console.error("Нет TELEGRAM_BOT_TOKEN или TELEGRAM_CHAT_ID");
-      return {
-        statusCode: 500,
-        body: "Server configuration error",
-      };
+      console.error("No TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID");
+      return new Response(
+        JSON.stringify({ ok: false, error: "Server configuration error" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
-
-    const text =
-      `🚀 Новый запрос с сайта mashpromstroy.ru\n\n` +
-      `Имя: ${name || "-"}\n` +
-      `Телефон: ${phone || "-"}\n` +
-      (message ? `Сообщение: ${message}\n` : "");
 
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
-    const response = await fetch(url, {
+    const tgResponse = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
         text,
-        parse_mode: "HTML",
+        parse_mode: "Markdown",
       }),
     });
 
-    const data = await response.json();
+    const data = await tgResponse.json();
+    console.log("Telegram API response:", data);
 
-    if (!response.ok || !data.ok) {
-      console.error("Ошибка телеграма:", data);
-      return {
-        statusCode: 500,
-        body: "Telegram API error",
-      };
+    if (!tgResponse.ok || !data.ok) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "Telegram API error",
+          data,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ ok: true }),
-    };
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (err) {
-    console.error("Ошибка в send-telegram:", err);
-    return {
-      statusCode: 500,
-      body: "Server error",
-    };
+    console.error("send-telegram function error:", err);
+    return new Response(
+      JSON.stringify({ ok: false, error: "Server error" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
-}
+};
